@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICE — AI Assistant</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ICE">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#040d1a">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --deep:   #040d1a;
+  --ocean:  #0a1a35;
+  --ice1:   #a8d8f0;
+  --ice2:   #c8ecff;
+  --ice3:   #e8f7ff;
+  --text:   #d4eef8;
+  --muted:  #6a9ab8;
+  --border: rgba(168,216,240,0.14);
+  --white:  #f0f8ff;
+  --error:  #f08080;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Raleway', sans-serif;
+  background: var(--deep);
+  color: var(--text);
+  display: flex; flex-direction: column; position: relative;
+}
+
+/* BG */
+.bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, #071a3a 0%, var(--deep) 70%),
+              linear-gradient(180deg, #020810 0%, #040d1a 100%);
+}
+.waterline {
+  position: absolute; bottom: 48%; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,216,240,0.25) 50%, transparent);
+  animation: shimmer 4s ease-in-out infinite;
+}
+@keyframes shimmer { 0%,100%{opacity:.5} 50%{opacity:1} }
+.ice-tip {
+  position: absolute; bottom: 48%; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 70px solid transparent; border-right: 70px solid transparent;
+  border-bottom: 130px solid rgba(200,236,255,0.05);
+}
+.ice-bulk {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 380px; height: 52%;
+  background: linear-gradient(180deg, rgba(168,216,240,0.05) 0%, rgba(60,120,180,0.02) 100%);
+  clip-path: polygon(15% 0%,85% 0%,95% 30%,100% 60%,88% 85%,68% 100%,32% 100%,12% 85%,0% 60%,5% 30%);
+  border: 1px solid rgba(168,216,240,0.06);
+}
+.particles { position: absolute; inset: 0; }
+.particle {
+  position: absolute; background: rgba(168,216,240,0.6); border-radius: 1px;
+  animation: drift linear infinite;
+}
+@keyframes drift {
+  0%{transform:translateY(0) rotate(0deg);opacity:0}
+  10%{opacity:.8} 90%{opacity:.3}
+  100%{transform:translateY(-100vh) rotate(360deg);opacity:0}
+}
+
+/* SCREENS */
+.screen { position: relative; z-index: 10; display: none; height: 100dvh; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* AUTH */
+#authScreen { align-items: center; justify-content: center; padding: 20px; animation: fadeUp .5s ease both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+.auth-card {
+  width: 100%; max-width: 420px;
+  background: rgba(6,14,30,0.88);
+  border: 1px solid var(--border); border-radius: 12px;
+  backdrop-filter: blur(24px); padding: 40px 36px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(168,216,240,0.08);
+  position: relative; overflow: hidden;
+}
+.auth-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,216,240,0.5) 40%, rgba(168,216,240,0.2) 70%, transparent);
+}
+
+.auth-logo { text-align: center; margin-bottom: 30px; }
+.auth-logo svg { width: 52px; height: 52px; margin: 0 auto 12px; display: block; }
+.auth-logo-name {
+  font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 700;
+  letter-spacing: 0.4em; color: var(--ice2);
+  text-shadow: 0 0 24px rgba(168,216,240,0.45);
+}
+.auth-logo-sub { font-size: 0.65rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
+.auth-tabs {
+  display: flex; gap: 0;
+  background: rgba(10,26,53,0.6); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px; margin-bottom: 26px;
+}
+.auth-tab {
+  flex: 1; padding: 8px; font-family: 'Raleway', sans-serif;
+  font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; border: none; border-radius: 4px;
+  background: transparent; color: var(--muted); cursor: pointer; transition: all .2s;
+}
+.auth-tab.active {
+  background: linear-gradient(135deg, rgba(168,216,240,0.18), rgba(168,216,240,0.06));
+  color: var(--ice2); border: 1px solid rgba(168,216,240,0.25);
+  text-shadow: 0 0 10px rgba(168,216,240,0.3);
+}
+
+.auth-form { display: flex; flex-direction: column; gap: 13px; }
+
+.field-label { font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.field-wrap { display: flex; flex-direction: column; }
+
+.auth-input {
+  background: rgba(8,18,42,0.7); border: 1px solid var(--border);
+  border-radius: 6px; padding: 11px 14px; color: var(--text);
+  font-family: 'Raleway', sans-serif; font-size: 0.88rem; outline: none;
+  transition: border-color .2s, box-shadow .2s; width: 100%;
+}
+.auth-input:focus { border-color: rgba(168,216,240,0.4); box-shadow: 0 0 0 3px rgba(168,216,240,0.07); }
+.auth-input::placeholder { color: rgba(106,154,184,0.45); }
+
+.lang-select {
+  background: rgba(8,18,42,0.7); border: 1px solid var(--border);
+  border-radius: 6px; padding: 11px 32px 11px 14px; color: var(--text);
+  font-family: 'Raleway', sans-serif; font-size: 0.86rem; outline: none;
+  cursor: pointer; transition: border-color .2s; width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a9ab8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.lang-select:focus { border-color: rgba(168,216,240,0.4); }
+.lang-select option { background: #0a1a35; color: var(--text); }
+
+.error-msg { font-size: 0.76rem; color: var(--error); letter-spacing: 0.04em; min-height: 18px; text-align: center; }
+
+.auth-btn {
+  margin-top: 4px; padding: 13px;
+  background: linear-gradient(135deg, rgba(168,216,240,0.2), rgba(168,216,240,0.07));
+  border: 1px solid rgba(168,216,240,0.32); border-radius: 6px;
+  color: var(--ice2); font-family: 'Cinzel', serif; font-size: 0.82rem;
+  font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase;
+  cursor: pointer; transition: all .2s;
+  clip-path: polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+}
+.auth-btn:hover {
+  background: linear-gradient(135deg, rgba(168,216,240,0.3), rgba(168,216,240,0.12));
+  box-shadow: 0 0 22px rgba(168,216,240,0.14); color: var(--white);
+}
+
+/* HEADER */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px; border-bottom: 1px solid var(--border);
+  background: rgba(4,13,26,0.78); backdrop-filter: blur(20px);
+  flex-shrink: 0; gap: 8px; flex-wrap: wrap;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 32px; height: 32px; }
+.logo-icon svg { width: 100%; height: 100%; }
+.logo-name {
+  font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700;
+  letter-spacing: 0.3em; color: var(--ice2);
+  text-shadow: 0 0 18px rgba(168,216,240,0.4);
+}
+.header-right { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+
+.mode-pills {
+  display: flex; gap: 4px;
+  background: rgba(10,26,53,0.6); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px;
+}
+.mode-pill {
+  padding: 5px 11px; border-radius: 999px; font-size: 0.7rem;
+  font-weight: 500; font-family: 'Raleway', sans-serif;
+  cursor: pointer; border: none; background: transparent;
+  color: var(--muted); letter-spacing: 0.04em; transition: all .2s; white-space: nowrap;
+}
+.mode-pill.active {
+  background: linear-gradient(135deg, rgba(168,216,240,0.2), rgba(168,216,240,0.07));
+  color: var(--ice2); border: 1px solid rgba(168,216,240,0.26);
+}
+
+.header-controls { display: flex; align-items: center; gap: 6px; }
+
+.lang-toggle {
+  display: flex; background: rgba(10,26,53,0.6); border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+}
+.lang-btn {
+  padding: 5px 10px; font-family: 'Raleway', sans-serif; font-size: 0.7rem;
+  font-weight: 600; letter-spacing: 0.08em; border: none;
+  background: transparent; color: var(--muted); cursor: pointer; transition: all .2s;
+}
+.lang-btn.active { background: rgba(168,216,240,0.14); color: var(--ice2); }
+
+.user-menu-wrap { position: relative; }
+.user-btn {
+  display: flex; align-items: center; gap: 6px; padding: 5px 11px;
+  background: rgba(10,26,53,0.6); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--muted); font-family: 'Raleway', sans-serif;
+  font-size: 0.73rem; font-weight: 500; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.user-btn:hover { border-color: rgba(168,216,240,0.3); color: var(--ice1); }
+.user-avatar {
+  width: 24px; height: 24px; border-radius: 4px;
+  background: linear-gradient(135deg, rgba(168,216,240,0.22), rgba(168,216,240,0.07));
+  border: 1px solid rgba(168,216,240,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--ice2);
+  font-family: 'Cinzel', serif; letter-spacing: 0;
+}
+
+.user-dropdown {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: rgba(6,14,30,0.97); border: 1px solid var(--border);
+  border-radius: 8px; backdrop-filter: blur(20px); min-width: 170px;
+  overflow: hidden; display: none; z-index: 100;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.user-dropdown.open { display: block; animation: fadeUp .15s ease both; }
+.dropdown-item {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  font-family: 'Raleway', sans-serif; font-size: 0.78rem; color: var(--muted);
+  cursor: pointer; transition: all .15s; border: none; background: transparent;
+  width: 100%; text-align: left;
+}
+.dropdown-item:hover { background: rgba(168,216,240,0.06); color: var(--ice1); }
+.dropdown-item.danger:hover { color: var(--error); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+/* CHAT */
+.chat-wrap { flex: 1; overflow-y: auto; padding: 22px 16px; scroll-behavior: smooth; }
+.chat-wrap::-webkit-scrollbar { width: 3px; }
+.chat-wrap::-webkit-scrollbar-thumb { background: rgba(168,216,240,0.13); border-radius: 3px; }
+.messages { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+.welcome { text-align: center; padding: 44px 16px 30px; animation: fadeUp .7s ease both; }
+.welcome-icon { width: 68px; height: 68px; margin: 0 auto 18px; }
+.welcome-icon svg { width: 100%; height: 100%; }
+.welcome h1 {
+  font-family: 'Cinzel', serif; font-size: clamp(1.8rem,5.5vw,2.8rem);
+  font-weight: 700; letter-spacing: 0.35em; color: var(--ice2);
+  text-shadow: 0 0 30px rgba(168,216,240,0.4); margin-bottom: 6px;
+}
+.welcome-sub { font-size: 0.66rem; letter-spacing: 0.22em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+.welcome-greeting { color: rgba(168,216,240,0.52); font-size: 0.88rem; font-weight: 300; max-width: 370px; margin: 0 auto 26px; line-height: 1.7; }
+
+.quick-prompts { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.quick-prompt {
+  padding: 7px 15px; border: 1px solid rgba(168,216,240,0.16);
+  background: rgba(168,216,240,0.04); color: var(--ice1);
+  font-size: 0.77rem; font-family: 'Raleway', sans-serif; font-weight: 400;
+  letter-spacing: 0.05em; cursor: pointer; transition: all .2s;
+  clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); border-radius: 2px;
+}
+.quick-prompt:hover { background: rgba(168,216,240,0.1); border-color: rgba(168,216,240,0.36); color: var(--ice3); }
+
+.msg { display: flex; gap: 11px; animation: fadeUp .3s ease both; }
+.msg.user { flex-direction: row-reverse; }
+
+.avatar {
+  width: 34px; height: 34px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px; font-size: 13px;
+  font-family: 'Cinzel', serif; font-weight: 700;
+}
+.msg.ai .avatar {
+  background: linear-gradient(135deg, rgba(168,216,240,0.17), rgba(168,216,240,0.04));
+  border: 1px solid rgba(168,216,240,0.22);
+}
+.msg.user .avatar {
+  background: rgba(10,26,53,0.8); border: 1px solid rgba(168,216,240,0.12); color: var(--ice1);
+}
+
+.bubble { max-width: 80%; padding: 13px 17px; font-size: 0.87rem; line-height: 1.7; position: relative; }
+.msg.ai .bubble {
+  background: linear-gradient(135deg, rgba(10,24,50,0.9), rgba(8,18,40,0.94));
+  border: 1px solid rgba(168,216,240,0.12); border-radius: 2px 14px 14px 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(168,216,240,0.07);
+  backdrop-filter: blur(10px);
+}
+.msg.ai .bubble::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 35%; height: 1px;
+  background: linear-gradient(90deg, rgba(168,216,240,0.32), transparent);
+}
+.msg.user .bubble {
+  background: linear-gradient(135deg, rgba(168,216,240,0.1), rgba(168,216,240,0.05));
+  border: 1px solid rgba(168,216,240,0.17); border-radius: 14px 2px 14px 14px;
+  backdrop-filter: blur(10px);
+}
+
+.bubble strong { color: var(--ice2); font-weight: 600; }
+.bubble em { color: var(--ice1); font-style: italic; }
+.bubble code {
+  background: rgba(168,216,240,0.07); border: 1px solid rgba(168,216,240,0.12);
+  padding: 2px 6px; border-radius: 3px; font-size: 0.82em;
+  font-family: 'Courier New', monospace; color: var(--ice2);
+}
+.bubble pre {
+  background: rgba(2,8,20,0.7); border: 1px solid rgba(168,216,240,0.12);
+  border-radius: 6px; padding: 12px; overflow-x: auto;
+  font-size: 0.8em; margin: 8px 0; font-family: 'Courier New', monospace; line-height: 1.5;
+}
+.bubble ul, .bubble ol { padding-left: 18px; margin: 6px 0; }
+.bubble li { margin-bottom: 4px; }
+
+.mode-badge {
+  display: inline-block; font-size: 0.61rem; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase; padding: 2px 10px;
+  border: 1px solid rgba(168,216,240,0.2); background: rgba(168,216,240,0.05);
+  color: var(--ice1); margin-bottom: 9px;
+  clip-path: polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
+}
+
+.typing-indicator { display: flex; align-items: center; gap: 5px; padding: 16px 17px; }
+.typing-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--ice1);
+  animation: icebounce 1.4s ease-in-out infinite; opacity: 0.4;
+}
+.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes icebounce { 0%,60%,100%{transform:translateY(0);opacity:.3} 30%{transform:translateY(-7px);opacity:1} }
+
+/* INPUT */
+.input-bar {
+  flex-shrink: 0; border-top: 1px solid var(--border);
+  background: rgba(4,10,22,0.83); backdrop-filter: blur(20px); padding: 11px 16px 15px;
+}
+.input-inner {
+  max-width: 760px; margin: 0 auto;
+  display: flex; align-items: flex-end; gap: 8px;
+  background: rgba(8,18,42,0.72); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 10px 9px 15px;
+  transition: border-color .25s, box-shadow .25s;
+  clip-path: polygon(8px 0%,100% 0%,100% 100%,0% 100%);
+}
+.input-inner:focus-within {
+  border-color: rgba(168,216,240,0.36); box-shadow: 0 0 0 3px rgba(168,216,240,0.06);
+}
+textarea {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Raleway', sans-serif;
+  font-size: 0.87rem; font-weight: 400; line-height: 1.55;
+  resize: none; max-height: 140px; min-height: 24px;
+}
+textarea::placeholder { color: rgba(106,154,184,0.45); font-weight: 300; letter-spacing: 0.04em; }
+.send-btn {
+  width: 37px; height: 37px; border: 1px solid rgba(168,216,240,0.26);
+  background: linear-gradient(135deg, rgba(168,216,240,0.15), rgba(168,216,240,0.04));
+  color: var(--ice2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all .2s; clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); border-radius: 2px;
+}
+.send-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(168,216,240,0.26), rgba(168,216,240,0.09));
+  box-shadow: 0 0 13px rgba(168,216,240,0.16); color: var(--white);
+}
+.send-btn:disabled { opacity: 0.27; cursor: not-allowed; }
+.send-btn svg { width: 15px; height: 15px; }
+.hint { text-align: center; color: rgba(106,154,184,0.38); font-size: 0.63rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 7px; }
+
+@media (max-width: 520px) {
+  .logo-name { font-size: 1.05rem; letter-spacing: 0.22em; }
+  .mode-pill { padding: 4px 8px; font-size: 0.67rem; }
+  .bubble { max-width: 92%; }
+  header { padding: 10px 12px; }
+  .auth-card { padding: 26px 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="waterline"></div><div class="ice-tip"></div><div class="ice-bulk"></div>
+  <div class="particles" id="particles"></div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div class="screen active" id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 52 52" fill="none">
+        <line x1="2" y1="28" x2="50" y2="28" stroke="rgba(168,216,240,0.3)" stroke-width="1"/>
+        <polygon points="26,5 36,28 16,28" fill="rgba(200,236,255,0.12)" stroke="rgba(168,216,240,0.6)" stroke-width="1"/>
+        <line x1="26" y1="13" x2="32" y2="24" stroke="rgba(168,216,240,0.4)" stroke-width="0.8"/>
+        <polygon points="16,28 36,28 44,40 38,48 14,48 8,40" fill="rgba(168,216,240,0.06)" stroke="rgba(168,216,240,0.22)" stroke-width="0.9"/>
+        <circle cx="26" cy="17" r="3" fill="rgba(200,236,255,0.85)" filter="url(#ag)"/>
+        <defs><filter id="ag"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      </svg>
+      <div class="auth-logo-name">ICE</div>
+      <div class="auth-logo-sub" id="authTagline">AI Assistant</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form" id="loginForm">
+      <div class="field-wrap">
+        <div class="field-label" id="lbEmail1">Email</div>
+        <input class="auth-input" type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbPass1">Password</div>
+        <input class="auth-input" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbLang1">Language / Idioma</div>
+        <select class="lang-select" id="loginLang" onchange="setAuthLang(this.value)">
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Español</option>
+        </select>
+      </div>
+      <div class="error-msg" id="loginError"></div>
+      <button class="auth-btn" id="loginBtn" onclick="doLogin()">Enter</button>
+    </div>
+
+    <!-- SIGNUP -->
+    <div class="auth-form" id="signupForm" style="display:none">
+      <div class="field-wrap">
+        <div class="field-label" id="lbName">Name</div>
+        <input class="auth-input" type="text" id="signupName" placeholder="Your name" autocomplete="name"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbEmail2">Email</div>
+        <input class="auth-input" type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbPass2">Password</div>
+        <input class="auth-input" type="password" id="signupPassword" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbPass3">Confirm Password</div>
+        <input class="auth-input" type="password" id="signupPassword2" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label" id="lbLang2">Language / Idioma</div>
+        <select class="lang-select" id="signupLang" onchange="setAuthLang(this.value)">
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Español</option>
+        </select>
+      </div>
+      <div class="error-msg" id="signupError"></div>
+      <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div class="screen" id="chatScreen">
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">
+        <svg viewBox="0 0 40 40" fill="none">
+          <line x1="2" y1="22" x2="38" y2="22" stroke="rgba(168,216,240,0.28)" stroke-width="0.8"/>
+          <polygon points="20,4 28,22 12,22" fill="rgba(200,236,255,0.12)" stroke="rgba(168,216,240,0.5)" stroke-width="0.8"/>
+          <line x1="20" y1="10" x2="24" y2="18" stroke="rgba(168,216,240,0.32)" stroke-width="0.6"/>
+          <polygon points="12,22 28,22 34,32 30,38 10,38 6,32" fill="rgba(168,216,240,0.06)" stroke="rgba(168,216,240,0.18)" stroke-width="0.7"/>
+          <circle cx="20" cy="13" r="2" fill="rgba(200,236,255,0.65)" filter="url(#gh)"/>
+          <defs><filter id="gh"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        </svg>
+      </div>
+      <div class="logo-name">ICE</div>
+    </div>
+
+    <div class="header-right">
+      <div class="mode-pills">
+        <button class="mode-pill active" data-mode="general" onclick="setMode(this)" id="pill_general">General</button>
+        <button class="mode-pill" data-mode="school" onclick="setMode(this)" id="pill_school">📚 School</button>
+        <button class="mode-pill" data-mode="decision" onclick="setMode(this)" id="pill_decision">⚖️ Decisions</button>
+      </div>
+      <div class="header-controls">
+        <div class="lang-toggle">
+          <button class="lang-btn active" id="btnEN" onclick="switchLang('en')">EN</button>
+          <button class="lang-btn" id="btnES" onclick="switchLang('es')">ES</button>
+        </div>
+        <div class="user-menu-wrap">
+          <button class="user-btn" id="userMenuBtn" onclick="toggleMenu()">
+            <div class="user-avatar" id="userInitial">?</div>
+            <span id="userNameDisplay">User</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="dropdown-item" id="dropEmailLabel" style="font-size:.7rem;color:var(--muted);cursor:default"></div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item danger" onclick="doLogout()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span id="logoutLabel">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="chat-wrap" id="chatWrap">
+    <div class="messages" id="messages"></div>
+  </div>
+
+  <div class="input-bar">
+    <div class="input-inner">
+      <textarea id="input" rows="1" placeholder="Ask ICE anything…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <p class="hint" id="inputHint">Enter to send · Shift + Enter for new line</p>
+  </div>
+</div>
+
+<script>
+/* ══ TRANSLATIONS ══ */
+const T = {
+  en: {
+    tagline:'AI Assistant', loginTab:'Login', signupTab:'Sign Up',
+    emailLbl:'Email', passLbl:'Password', confirmLbl:'Confirm Password', nameLbl:'Name', langLbl:'Language / Idioma',
+    loginBtn:'Enter', signupBtn:'Create Account', logoutLbl:'Logout',
+    pillGeneral:'General', pillSchool:'📚 School', pillDecision:'⚖️ Decisions',
+    welcomeSub:'Intelligence · Clarity · Expertise',
+    greetingReturn: n => `Welcome back, ${n}. What can ICE help you with today?`,
+    greetingNew:    n => `Welcome, ${n}. ICE is ready — ask anything.`,
+    inputPlaceholder:'Ask ICE anything…',
+    hint:'Enter to send · Shift + Enter for new line',
+    errEmail:'Please enter your email.', errPass:'Please enter your password.',
+    errName:'Please enter your name.', errMismatch:'Passwords do not match.',
+    errShort:'Password must be at least 6 characters.',
+    errExists:'An account with this email already exists.',
+    errNoAcct:'No account found with this email.', errWrong:'Incorrect password.',
+    connLost:'⚠ Connection lost. Check your network and try again.',
+    badgeSchool:'📚 Study', badgeDecision:'⚖️ Decision',
+    prompts: {
+      general:  ['◈ Help me write an essay','◈ Solve a math problem','◈ Help me decide something','◈ Explain a concept','◈ Summarize my notes'],
+      school:   ['◈ Explain calculus simply','◈ Help write a thesis','◈ Solve this equation','◈ Summarize this chapter','◈ Check my essay'],
+      decision: ['◈ Should I change careers?','◈ Which college to pick?','◈ Is this worth investing?','◈ Should I move cities?','◈ Help me weigh options']
+    },
+    sys: {
+      general:  `You are ICE — a sharp, precise, reliable AI assistant. Help users with any topic. Be clear, concise, insightful. Use markdown when helpful.`,
+      school:   `You are ICE in Study Mode — a brilliant academic tutor. Break problems into clear steps. Explain the *why* behind answers. Use examples and analogies. Be encouraging and methodical.`,
+      decision: `You are ICE in Decision Mode — a calm, objective strategic advisor. Provide structured Pros/Cons analysis, weigh short vs long-term impacts, surface hidden risks, and give a clear recommendation. Format: Situation → Analysis → Key Factors → Recommendation.`
+    }
+  },
+  es: {
+    tagline:'Asistente de IA', loginTab:'Iniciar sesión', signupTab:'Registrarse',
+    emailLbl:'Correo', passLbl:'Contraseña', confirmLbl:'Confirmar contraseña', nameLbl:'Nombre', langLbl:'Language / Idioma',
+    loginBtn:'Entrar', signupBtn:'Crear cuenta', logoutLbl:'Cerrar sesión',
+    pillGeneral:'General', pillSchool:'📚 Estudio', pillDecision:'⚖️ Decisiones',
+    welcomeSub:'Inteligencia · Claridad · Experiencia',
+    greetingReturn: n => `Bienvenido de vuelta, ${n}. ¿En qué puede ayudarte ICE hoy?`,
+    greetingNew:    n => `Bienvenido, ${n}. ICE está listo — pregunta lo que quieras.`,
+    inputPlaceholder:'Pregunta a ICE cualquier cosa…',
+    hint:'Enter para enviar · Shift + Enter para nueva línea',
+    errEmail:'Por favor ingresa tu correo.', errPass:'Por favor ingresa tu contraseña.',
+    errName:'Por favor ingresa tu nombre.', errMismatch:'Las contraseñas no coinciden.',
+    errShort:'La contraseña debe tener al menos 6 caracteres.',
+    errExists:'Ya existe una cuenta con este correo.',
+    errNoAcct:'No se encontró ninguna cuenta con este correo.', errWrong:'Contraseña incorrecta.',
+    connLost:'⚠ Conexión perdida. Revisa tu red e intenta de nuevo.',
+    badgeSchool:'📚 Estudio', badgeDecision:'⚖️ Decisión',
+    prompts: {
+      general:  ['◈ Ayúdame a escribir un ensayo','◈ Resuelve un problema de matemáticas','◈ Ayúdame a decidir algo','◈ Explícame un concepto','◈ Resume mis apuntes'],
+      school:   ['◈ Explícame el cálculo','◈ Ayúdame con mi tesis','◈ Resuelve esta ecuación','◈ Resume este capítulo','◈ Revisa mi ensayo'],
+      decision: ['◈ ¿Debo cambiar de trabajo?','◈ ¿Qué universidad elegir?','◈ ¿Vale la pena invertir?','◈ ¿Debo mudarme de ciudad?','◈ Ayúdame a evaluar opciones']
+    },
+    sys: {
+      general:  `Eres ICE — un asistente de IA preciso y confiable. Ayuda con cualquier tema. Sé claro, conciso e informativo. Responde siempre en español. Usa markdown cuando sea útil.`,
+      school:   `Eres ICE en Modo Estudio — un tutor académico brillante. Desglosa los problemas en pasos claros. Explica el *porqué* detrás de cada respuesta. Usa ejemplos y analogías. Responde siempre en español. Sé alentador y metódico.`,
+      decision: `Eres ICE en Modo Decisión — un asesor estratégico objetivo y calmado. Proporciona análisis estructurado de Pros/Contras, evalúa impactos a corto y largo plazo, detecta riesgos ocultos y da una recomendación clara. Responde siempre en español. Formato: Situación → Análisis → Factores Clave → Recomendación.`
+    }
+  }
+};
+
+/* ══ STATE ══ */
+let lang = 'en', currentUser = null, currentMode = 'general';
+let history = [], isLoading = false, activeTab = 'login';
+
+/* ══ PARTICLES ══ */
+const pc = document.getElementById('particles');
+for (let i = 0; i < 20; i++) {
+  const p = document.createElement('div'); p.className = 'particle';
+  const s = Math.random() * 3 + 1;
+  p.style.cssText = `width:${s}px;height:${s*(Math.random()*2+1)}px;left:${Math.random()*100}%;bottom:${Math.random()*30}%;animation-duration:${Math.random()*18+14}s;animation-delay:${Math.random()*14}s;opacity:${Math.random()*0.35+0.1}`;
+  pc.appendChild(p);
+}
+
+/* ══ HELPERS ══ */
+function t(k) { return T[lang][k] ?? T.en[k] ?? k; }
+
+function applyLang() {
+  const L = T[lang];
+  // Auth screen
+  document.getElementById('authTagline').textContent = L.tagline;
+  document.getElementById('tabLogin').textContent = L.loginTab;
+  document.getElementById('tabSignup').textContent = L.signupTab;
+  document.getElementById('lbEmail1').textContent = L.emailLbl;
+  document.getElementById('lbPass1').textContent = L.passLbl;
+  document.getElementById('lbLang1').textContent = L.langLbl;
+  document.getElementById('loginBtn').textContent = L.loginBtn;
+  document.getElementById('lbName').textContent = L.nameLbl;
+  document.getElementById('lbEmail2').textContent = L.emailLbl;
+  document.getElementById('lbPass2').textContent = L.passLbl;
+  document.getElementById('lbPass3').textContent = L.confirmLbl;
+  document.getElementById('lbLang2').textContent = L.langLbl;
+  document.getElementById('signupBtn').textContent = L.signupBtn;
+  // Chat UI
+  document.getElementById('pill_general').textContent = L.pillGeneral;
+  document.getElementById('pill_school').textContent = L.pillSchool;
+  document.getElementById('pill_decision').textContent = L.pillDecision;
+  document.getElementById('logoutLabel').textContent = L.logoutLbl;
+  document.getElementById('input').placeholder = L.inputPlaceholder;
+  document.getElementById('inputHint').textContent = L.hint;
+  // Lang buttons
+  document.getElementById('btnEN').classList.toggle('active', lang === 'en');
+  document.getElementById('btnES').classList.toggle('active', lang === 'es');
+  // Sync selects
+  document.getElementById('loginLang').value = lang;
+  document.getElementById('signupLang').value = lang;
+  refreshQuickPrompts();
+}
+
+function setAuthLang(val) {
+  lang = val;
+  document.getElementById('loginLang').value = val;
+  document.getElementById('signupLang').value = val;
+  applyLang();
+}
+
+function switchLang(val) {
+  lang = val;
+  if (currentUser) { currentUser.lang = val; saveUser(currentUser); }
+  applyLang();
+}
+
+/* ══ STORAGE ══ */
+function getUsers()  { try{return JSON.parse(localStorage.getItem('ice_users')||'{}')}catch{return{}} }
+function saveUser(u) { const us=getUsers(); us[u.email]=u; localStorage.setItem('ice_users',JSON.stringify(us)); }
+function getSession(){ try{return JSON.parse(localStorage.getItem('ice_sess')||'null')}catch{return null} }
+function setSession(e){ localStorage.setItem('ice_sess',JSON.stringify({email:e})); }
+function clearSession(){ localStorage.removeItem('ice_sess'); }
+
+/* ══ TABS ══ */
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('loginForm').style.display  = tab==='login'  ? 'flex':'none';
+  document.getElementById('signupForm').style.display = tab==='signup' ? 'flex':'none';
+  document.getElementById('tabLogin').classList.toggle('active',  tab==='login');
+  document.getElementById('tabSignup').classList.toggle('active', tab==='signup');
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('signupError').textContent = '';
+}
+
+/* ══ AUTH ══ */
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+  if (!email) { err.textContent = t('errEmail'); return; }
+  if (!pass)  { err.textContent = t('errPass');  return; }
+  const users = getUsers(); const user = users[email];
+  if (!user)               { err.textContent = t('errNoAcct'); return; }
+  if (user.password !== btoa(pass)) { err.textContent = t('errWrong'); return; }
+  lang = user.lang || 'en';
+  setSession(email);
+  enterChat(user, false);
+}
+
+function doSignup() {
+  const name  = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const p1    = document.getElementById('signupPassword').value;
+  const p2    = document.getElementById('signupPassword2').value;
+  const err   = document.getElementById('signupError');
+  if (!name)       { err.textContent = t('errName');    return; }
+  if (!email)      { err.textContent = t('errEmail');   return; }
+  if (!p1)         { err.textContent = t('errPass');    return; }
+  if (p1.length<6) { err.textContent = t('errShort');   return; }
+  if (p1 !== p2)   { err.textContent = t('errMismatch');return; }
+  const users = getUsers();
+  if (users[email])  { err.textContent = t('errExists'); return; }
+  const user = { name, email, password: btoa(p1), lang };
+  saveUser(user); setSession(email);
+  enterChat(user, true);
+}
+
+function doLogout() {
+  clearSession(); currentUser = null; history = [];
+  document.getElementById('chatScreen').classList.remove('active');
+  document.getElementById('authScreen').classList.add('active');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').textContent = '';
+  closeMenu();
+}
+
+/* ══ ENTER CHAT ══ */
+function enterChat(user, isNew) {
+  currentUser = user; lang = user.lang || 'en';
+  document.getElementById('authScreen').classList.remove('active');
+  document.getElementById('chatScreen').classList.add('active');
+  document.getElementById('userInitial').textContent = user.name.charAt(0).toUpperCase();
+  document.getElementById('userNameDisplay').textContent = user.name.split(' ')[0];
+  document.getElementById('dropEmailLabel').textContent = user.email;
+  applyLang();
+  buildWelcome(isNew);
+}
+
+function buildWelcome(isNew) {
+  history = [];
+  const L = T[lang];
+  document.getElementById('messages').innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 72 72" fill="none">
+          <line x1="4" y1="40" x2="68" y2="40" stroke="rgba(168,216,240,0.22)" stroke-width="1.2"/>
+          <polygon points="36,7 50,40 22,40" fill="rgba(200,236,255,0.09)" stroke="rgba(168,216,240,0.5)" stroke-width="1"/>
+          <line x1="36" y1="17" x2="43" y2="33" stroke="rgba(168,216,240,0.35)" stroke-width="0.7"/>
+          <polygon points="22,40 50,40 59,54 52,65 20,65 13,54" fill="rgba(168,216,240,0.05)" stroke="rgba(168,216,240,0.18)" stroke-width="0.9"/>
+          <circle cx="36" cy="22" r="3" fill="rgba(200,236,255,0.75)" filter="url(#wg3)"/>
+          <defs><filter id="wg3"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        </svg>
+      </div>
+      <h1>ICE</h1>
+      <div class="welcome-sub">${L.welcomeSub}</div>
+      <div class="welcome-greeting">${isNew ? L.greetingNew(currentUser.name) : L.greetingReturn(currentUser.name)}</div>
+      <div class="quick-prompts" id="quickPrompts"></div>
+    </div>`;
+  refreshQuickPrompts();
+}
+
+function refreshQuickPrompts() {
+  const qp = document.getElementById('quickPrompts');
+  if (!qp) return;
+  qp.innerHTML = (T[lang].prompts[currentMode] || T.en.prompts[currentMode])
+    .map(p => `<button class="quick-prompt" onclick="usePrompt(this)">${p}</button>`).join('');
+}
+
+/* ══ MODE ══ */
+function setMode(btn) {
+  document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active'); currentMode = btn.dataset.mode;
+  buildWelcome(false);
+}
+
+function usePrompt(btn) {
+  const txt = btn.textContent.replace(/^◈\s*/,'');
+  document.getElementById('input').value = txt;
+  autoResize(document.getElementById('input'));
+  sendMessage();
+}
+
+/* ══ MENU ══ */
+function toggleMenu() { document.getElementById('userDropdown').classList.toggle('open'); }
+function closeMenu()  { document.getElementById('userDropdown').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (!document.getElementById('userMenuBtn')?.contains(e.target) &&
+      !document.getElementById('userDropdown')?.contains(e.target)) closeMenu();
+});
+
+/* ══ INPUT ══ */
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; }
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+
+/* ══ MESSAGES ══ */
+function removeWelcome() { const w=document.getElementById('welcome'); if(w) w.remove(); }
+
+function appendMsg(role, content) {
+  removeWelcome();
+  const msgs = document.getElementById('messages');
+  const isAI = role==='ai';
+  const div = document.createElement('div'); div.className=`msg ${role}`;
+  const av = document.createElement('div'); av.className='avatar';
+  av.innerHTML = isAI
+    ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polygon points="12,2 16,13 8,13" fill="rgba(168,216,240,0.8)" stroke="rgba(168,216,240,0.5)" stroke-width="0.8"/><polygon points="8,13 16,13 19,18 17,22 7,22 5,18" fill="rgba(168,216,240,0.12)" stroke="rgba(168,216,240,0.28)" stroke-width="0.7"/></svg>`
+    : (currentUser?.name.charAt(0).toUpperCase()||'?');
+  const bub = document.createElement('div'); bub.className='bubble';
+  if (isAI && currentMode!=='general') {
+    const badge=document.createElement('div'); badge.className='mode-badge';
+    badge.textContent = T[lang]['badge'+currentMode.charAt(0).toUpperCase()+currentMode.slice(1)] || currentMode;
+    bub.appendChild(badge);
+  }
+  const c=document.createElement('div'); c.innerHTML=fmt(content);
+  bub.appendChild(c); div.appendChild(av); div.appendChild(bub); msgs.appendChild(div);
+  document.getElementById('chatWrap').scrollTop = document.getElementById('chatWrap').scrollHeight;
+}
+
+function appendTyping() {
+  removeWelcome();
+  const msgs=document.getElementById('messages');
+  const div=document.createElement('div'); div.className='msg ai'; div.id='typing-msg';
+  const av=document.createElement('div'); av.className='avatar';
+  av.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><polygon points="12,2 16,13 8,13" fill="rgba(168,216,240,0.8)" stroke="rgba(168,216,240,0.5)" stroke-width="0.8"/><polygon points="8,13 16,13 19,18 17,22 7,22 5,18" fill="rgba(168,216,240,0.12)" stroke="rgba(168,216,240,0.28)" stroke-width="0.7"/></svg>`;
+  const bub=document.createElement('div'); bub.className='bubble typing-indicator';
+  bub.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  div.appendChild(av); div.appendChild(bub); msgs.appendChild(div);
+  document.getElementById('chatWrap').scrollTop = document.getElementById('chatWrap').scrollHeight;
+}
+function removeTyping() { const t=document.getElementById('typing-msg'); if(t) t.remove(); }
+
+/* ══ SEND ══ */
+async function sendMessage() {
+  if (isLoading) return;
+  const inp=document.getElementById('input'); const txt=inp.value.trim(); if(!txt) return;
+  inp.value=''; inp.style.height='auto'; isLoading=true;
+  document.getElementById('sendBtn').disabled=true;
+  appendMsg('user', txt); history.push({role:'user',content:txt}); appendTyping();
+
+  try {
+    const res = await fetch('/api/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system: T[lang].sys[currentMode],
+        messages: history
+      })
+    });
+    const data=await res.json(); removeTyping();
+    const reply=data.content?.find(b=>b.type==='text')?.text || t('connLost');
+    history.push({role:'assistant',content:reply}); appendMsg('ai',reply);
+  } catch(e) { removeTyping(); appendMsg('ai',t('connLost')); console.error(e); }
+
+  isLoading=false; document.getElementById('sendBtn').disabled=false;
+  document.getElementById('input').focus();
+}
+
+/* ══ MARKDOWN ══ */
+function fmt(text) {
+  return text
+    .replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,code)=>`<pre><code>${esc(code.trim())}</code></pre>`)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<h4 style="margin:10px 0 4px;font-family:Cinzel,serif;font-size:.87rem;color:rgba(168,216,240,.9);letter-spacing:.08em">$1</h4>')
+    .replace(/^## (.+)$/gm,'<h3 style="margin:12px 0 6px;font-family:Cinzel,serif;font-size:.96rem;color:var(--ice2);letter-spacing:.1em">$1</h3>')
+    .replace(/^# (.+)$/gm,'<h2 style="margin:14px 0 8px;font-family:Cinzel,serif;font-size:1.03rem;color:var(--ice2);letter-spacing:.12em">$1</h2>')
+    .replace(/^\d+\.\s(.+)$/gm,'<li style="list-style:decimal">$1</li>')
+    .replace(/^[-*]\s(.+)$/gm,'<li>$1</li>')
+    .replace(/(<li[^>]*>[\s\S]*?<\/li>\n?)+/g,m=>`<ul style="padding-left:18px;margin:6px 0">${m}</ul>`)
+    .replace(/\n\n/g,'</p><p style="margin-bottom:8px">')
+    .replace(/\n/g,'<br>')
+    .replace(/<p><\/p>/g,'');
+}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ══ INIT ══ */
+(function(){
+  const sess=getSession();
+  if(sess){ const u=getUsers()[sess.email]; if(u){enterChat(u,false);return;} }
+  applyLang();
+})();
+
+/* ══ PWA SERVICE WORKER ══ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('ICE PWA ready:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+
+/* ══ PWA INSTALL PROMPT ══ */
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner after 3 seconds
+  setTimeout(() => showInstallBanner(), 3000);
+});
+
+function showInstallBanner() {
+  if (!deferredPrompt) return;
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = `
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+    background:rgba(6,14,30,0.97); border:1px solid rgba(168,216,240,0.25);
+    border-radius:12px; padding:14px 20px; z-index:9999;
+    display:flex; align-items:center; gap:14px;
+    backdrop-filter:blur(20px); box-shadow:0 8px 32px rgba(0,0,0,0.4);
+    max-width:340px; width:90%; animation:fadeUp .3s ease both;
+  `;
+  banner.innerHTML = `
+    <div style="font-size:28px">🧊</div>
+    <div style="flex:1">
+      <div style="font-family:'Cinzel',serif;font-size:.8rem;color:#c8ecff;letter-spacing:.1em">INSTALL ICE</div>
+      <div style="font-size:.73rem;color:#6a9ab8;margin-top:2px">Add to home screen for app experience</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onclick="installApp()" style="padding:6px 14px;background:linear-gradient(135deg,rgba(168,216,240,0.22),rgba(168,216,240,0.08));border:1px solid rgba(168,216,240,0.3);border-radius:6px;color:#c8ecff;font-family:'Raleway',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;letter-spacing:.06em">Install</button>
+      <button onclick="document.getElementById('installBanner').remove()" style="padding:6px 10px;background:transparent;border:1px solid rgba(168,216,240,0.12);border-radius:6px;color:#6a9ab8;font-size:.75rem;cursor:pointer">✕</button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+}
+
+async function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.remove();
+}
+</script>
+</body>
+</html>
